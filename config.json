@@ -6,6 +6,8 @@
   "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
   "auto_retry_on_failure": false,
   "max_retries": 3,
-  "privacy_status": "private"
+  "privacy_status": "private",
+  "description": "",
+  "tags": []
 }
 

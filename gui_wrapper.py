@@ -8,19 +8,21 @@ The main script (youtube_bulk_scheduler.py) is NOT modified.
 import os
 import subprocess
 import sys
+import json
 import tkinter as tk
 from pathlib import Path
 from tkinter import scrolledtext, ttk, messagebox, filedialog
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 MAIN_SCRIPT = SCRIPT_DIR / "youtube_bulk_scheduler.py"
+GUI_SETTINGS_FILE = SCRIPT_DIR / "gui_settings.json"
 
 
 class YouTubeSchedulerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("YouTube Bulk Scheduler")
-        self.root.geometry("800x600")
+        self.root.geometry("900x700")
         
         # Variables
         self.dry_run_var = tk.BooleanVar()
@@ -28,8 +30,16 @@ class YouTubeSchedulerGUI:
         self.timezone_var = tk.StringVar(value="America/Sao_Paulo")
         self.hour_slots_var = tk.StringVar(value="8 18")
         self.category_id_var = tk.StringVar(value="20")
+        self.description_var = tk.StringVar()
+        self.tags_var = tk.StringVar()
+        
+        # Load saved settings
+        self.load_settings()
         
         self.setup_ui()
+        
+        # Save settings when window closes
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         
     def setup_ui(self):
         # Main frame
@@ -65,8 +75,28 @@ class YouTubeSchedulerGUI:
         ttk.Entry(config_frame, textvariable=self.category_id_var, width=20).grid(row=3, column=1, sticky=tk.W, pady=2)
         ttk.Label(config_frame, text="(20 = Gaming)").grid(row=3, column=2, sticky=tk.W, padx=5)
         
+        # Description
+        ttk.Label(config_frame, text="Description:").grid(row=4, column=0, sticky=tk.W, pady=2)
+        description_entry = scrolledtext.ScrolledText(config_frame, height=3, width=40)
+        description_entry.grid(row=4, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=2)
+        # Load saved description if available
+        saved_description = self.description_var.get()
+        if saved_description:
+            description_entry.insert(1.0, saved_description)
+        description_entry.bind('<KeyRelease>', lambda e: self.description_var.set(description_entry.get(1.0, tk.END).strip()))
+        self.description_entry = description_entry
+        
+        # Tags
+        ttk.Label(config_frame, text="Tags:").grid(row=5, column=0, sticky=tk.W, pady=2)
+        tags_entry = ttk.Entry(config_frame, textvariable=self.tags_var, width=40)
+        tags_entry.grid(row=5, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=2)
+        ttk.Label(config_frame, text="(comma-separated)").grid(row=5, column=3, sticky=tk.W, padx=5)
+        
         # Dry run checkbox
-        ttk.Checkbutton(config_frame, text="Dry Run (Preview Only)", variable=self.dry_run_var).grid(row=4, column=0, columnspan=2, sticky=tk.W, pady=5)
+        ttk.Checkbutton(config_frame, text="Dry Run (Preview Only)", variable=self.dry_run_var).grid(row=6, column=0, columnspan=2, sticky=tk.W, pady=5)
+        
+        # Configure column weights for resizing
+        config_frame.columnconfigure(1, weight=1)
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
@@ -112,8 +142,24 @@ class YouTubeSchedulerGUI:
         if self.category_id_var.get():
             cmd.extend(["--category-id", self.category_id_var.get()])
         
+        # Add description if provided (get from entry widget directly)
+        description = self.description_entry.get(1.0, tk.END).strip()
+        if description:
+            # For Windows, we need to properly escape the description
+            # Use double quotes and escape internal quotes
+            description_escaped = description.replace('"', '""')
+            cmd.extend(["--description", description_escaped])
+        
+        # Add tags if provided
+        tags = self.tags_var.get().strip()
+        if tags:
+            cmd.extend(["--tags", tags])
+        
         if self.dry_run_var.get():
             cmd.append("--dry-run")
+        
+        # Save settings before running
+        self.save_settings()
         
         try:
             # Run script and capture output
@@ -163,7 +209,7 @@ class YouTubeSchedulerGUI:
     
     def view_history(self):
         """Open upload history in a new window."""
-        history_file = SCRIPT_DIR / "upload_history.json"
+        history_file = SCRIPT_DIR / "logs" / "upload_history.json"
         if not history_file.exists():
             messagebox.showinfo("Info", "No upload history found yet.")
             return
@@ -185,7 +231,7 @@ class YouTubeSchedulerGUI:
     
     def view_logs(self):
         """Open error log in a new window."""
-        log_file = SCRIPT_DIR / "error_log.txt"
+        log_file = SCRIPT_DIR / "logs" / "error_log.txt"
         if not log_file.exists():
             messagebox.showinfo("Info", "No error log found yet.")
             return
@@ -202,6 +248,48 @@ class YouTubeSchedulerGUI:
                 text_widget.insert(1.0, f.read())
         except Exception as e:
             text_widget.insert(1.0, f"Error reading log: {e}")
+    
+    def load_settings(self):
+        """Load saved GUI settings from file."""
+        if GUI_SETTINGS_FILE.exists():
+            try:
+                with open(GUI_SETTINGS_FILE, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+                    # Load all settings except start_date
+                    self.description_var.set(settings.get('description', ''))
+                    self.tags_var.set(settings.get('tags', ''))
+                    self.timezone_var.set(settings.get('timezone', 'America/Sao_Paulo'))
+                    self.hour_slots_var.set(settings.get('hour_slots', '8 18'))
+                    self.category_id_var.set(settings.get('category_id', '20'))
+                    self.dry_run_var.set(settings.get('dry_run', False))
+            except Exception as e:
+                # If loading fails, use defaults
+                pass
+    
+    def save_settings(self):
+        """Save GUI settings to file (except start_date)."""
+        try:
+            # Get description from entry widget
+            description = self.description_entry.get(1.0, tk.END).strip() if hasattr(self, 'description_entry') else self.description_var.get()
+            settings = {
+                'description': description,
+                'tags': self.tags_var.get(),
+                'timezone': self.timezone_var.get(),
+                'hour_slots': self.hour_slots_var.get(),
+                'category_id': self.category_id_var.get(),
+                'dry_run': self.dry_run_var.get()
+                # Note: start_date is intentionally not saved
+            }
+            with open(GUI_SETTINGS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            # Silently fail - not critical
+            pass
+    
+    def on_closing(self):
+        """Handle window closing event."""
+        self.save_settings()
+        self.root.destroy()
 
 
 def main():

@@ -65,10 +65,14 @@ SENT_FOLDER = SCRIPT_DIR / "sent"
 CLIENT_SECRETS_FILE = SCRIPT_DIR / "client_secret.json"
 TOKEN_FILE = SCRIPT_DIR / "token.json"
 CONFIG_FILE = SCRIPT_DIR / "config.json"
-HISTORY_FILE = SCRIPT_DIR / "upload_history.json"
-ERROR_LOG_FILE = SCRIPT_DIR / "error_log.txt"
+LOGS_DIR = SCRIPT_DIR / "logs"
+HISTORY_FILE = LOGS_DIR / "upload_history.json"
+ERROR_LOG_FILE = LOGS_DIR / "error_log.txt"
 LOCK_FILE = SCRIPT_DIR / ".script.lock"
 BACKUP_DIR = SCRIPT_DIR / "backups"
+
+# Create logs directory if it doesn't exist
+LOGS_DIR.mkdir(exist_ok=True)
 
 
 def load_config() -> dict[str, Any]:
@@ -80,7 +84,9 @@ def load_config() -> dict[str, Any]:
         "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
         "auto_retry_on_failure": False,
         "max_retries": 3,
-        "privacy_status": "private"
+        "privacy_status": "private",
+        "description": "",
+        "tags": []
     }
 
     if CONFIG_FILE.exists():
@@ -159,6 +165,20 @@ Examples:
         "--dry-run",
         action="store_true",
         help="Preview what would be done without actually uploading videos"
+    )
+
+    parser.add_argument(
+        "--description",
+        type=str,
+        default=config.get("description", ""),
+        help="Description for all videos. Default from config."
+    )
+
+    parser.add_argument(
+        "--tags",
+        type=str,
+        default=None,
+        help="Tags for all videos (comma-separated). Default from config."
     )
 
     return parser.parse_args()
@@ -480,7 +500,9 @@ def upload_and_schedule(
     privacy_status: str = "private",
     video_number: int = 0,
     total_videos: int = 0,
-    dry_run: bool = False
+    dry_run: bool = False,
+    description: str = "",
+    tags: list[str] | None = None
 ) -> dict:
     """Upload a video and schedule it for publication."""
     raw_title = video_path.stem
@@ -491,7 +513,10 @@ def upload_and_schedule(
         for warning in title_warnings:
             print(f"   ⚠️  Title warning for '{raw_title}': {warning}")
     
-    description = ""
+    # Use provided description, default to empty string
+    if tags is None:
+        tags = []
+    
     file_size = video_path.stat().st_size
     start_time = time.time()
     
@@ -512,12 +537,18 @@ def upload_and_schedule(
         }
 
     # Prepare video metadata
+    snippet_data = {
+        "title": title,
+        "description": description,
+        "categoryId": category_id,
+    }
+    
+    # Add tags if provided (YouTube API requires tags to be a list)
+    if tags:
+        snippet_data["tags"] = tags
+    
     body = {
-        "snippet": {
-            "title": title,
-            "description": description,
-            "categoryId": category_id,
-        },
+        "snippet": snippet_data,
         "status": {
             "privacyStatus": privacy_status,
             "publishAt": publish_time.isoformat(),
@@ -737,6 +768,24 @@ def _main_impl() -> None:
             log_error(f"Invalid hour slot '{hour}'. Must be between 0 and 23.", "ERROR")
             sys.exit(1)
 
+    # Process tags: convert from string to list if needed
+    tags_list = []
+    if args.tags:
+        # If tags is a string (from CLI), split by comma
+        if isinstance(args.tags, str):
+            tags_list = [tag.strip() for tag in args.tags.split(',') if tag.strip()]
+        elif isinstance(args.tags, list):
+            tags_list = args.tags
+    elif config.get("tags"):
+        # Fall back to config if no CLI argument
+        if isinstance(config["tags"], str):
+            tags_list = [tag.strip() for tag in config["tags"].split(',') if tag.strip()]
+        elif isinstance(config["tags"], list):
+            tags_list = config["tags"]
+    
+    # Get description from args or config
+    description = args.description if args.description else config.get("description", "")
+
     if args.dry_run:
         print("🔍 DRY-RUN MODE: Preview only, no videos will be uploaded\n")
     else:
@@ -869,7 +918,9 @@ def _main_impl() -> None:
                 privacy_status,
                 video_number=idx,
                 total_videos=total_videos,
-                dry_run=args.dry_run
+                dry_run=args.dry_run,
+                description=description,
+                tags=tags_list
             )
             
             # Handle dry-run results

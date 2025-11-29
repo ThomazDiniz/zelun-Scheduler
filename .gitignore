@@ -2,11 +2,14 @@
 token.json
 client_secret.json
 
+# GUI Settings - DO NOT COMMIT
+gui_settings.json
+
 # Upload History - DO NOT COMMIT
-upload_history.json
+logs/upload_history.json
 
 # Error Logs - DO NOT COMMIT
-error_log.txt
+logs/error_log.txt
 
 # Lock Files
 .upload_lock
