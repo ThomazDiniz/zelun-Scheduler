@@ -49,7 +49,7 @@ A Python script to automatically upload and schedule multiple videos to your You
    - Edit `config.json` with your preferred default settings
    - The file comes with sensible defaults for Brazil timezone
    - This allows you to skip command-line arguments on every run
-   - See [Configuration](#configuration) section and `CONFIG_EXAMPLES.md` for examples
+   - See [Configuration Examples](#configuration-examples) section below for examples
 
 5. **Create folder structure**:
    ```
@@ -78,7 +78,7 @@ Edit `config.json` with your preferences:
    }
    ```
 
-3. **Note**: Command-line arguments always override config file values.
+**Note**: Command-line arguments always override config file values.
 
 ### Configuration Options
 
@@ -88,6 +88,210 @@ Edit `config.json` with your preferences:
 - **`quota_reset_hour`**: Hour when YouTube quota resets (0-23, default: 5)
 - **`video_extensions`**: List of video file extensions to process
 - **`privacy_status`**: Default privacy status (`"private"`, `"unlisted"`, or `"public"`)
+- **`description`**: Default description for all videos (string, optional)
+- **`tags`**: Default tags for all videos (array of strings, optional)
+- **`schedule_mode`**: Scheduling mode - `"daily"` (default) or `"weekly"`
+- **`schedule_day`**: Day of week for weekly mode (`"monday"`, `"tuesday"`, etc.)
+- **`schedule_hour`**: Hour for weekly mode (0-23)
+- **`playlist_id`**: Existing playlist ID to add videos to (optional)
+- **`create_playlist`**: Create new playlist (boolean, optional)
+- **`playlist_title`**: Title for new playlist (if creating)
+
+### Configuration Examples
+
+#### 🇧🇷 Brazil (Default)
+
+```json
+{
+  "default_timezone": "America/Sao_Paulo",
+  "default_hour_slots": [8, 18],
+  "default_category_id": "20",
+  "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+  "privacy_status": "private",
+  "description": "",
+  "tags": []
+}
+```
+
+**Characteristics:**
+- Timezone: GMT-3 (Brazil)
+- Time slots: 8:00 and 18:00 (morning and afternoon)
+
+#### 🇺🇸 United States - East Coast
+
+```json
+{
+  "default_timezone": "America/New_York",
+  "default_hour_slots": [10, 18],
+  "default_category_id": "20",
+  "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+  "privacy_status": "private"
+}
+```
+
+**Characteristics:**
+- Timezone: EST/EDT (GMT-5/-4)
+- Time slots: 10:00 and 18:00
+
+#### 🇺🇸 United States - West Coast
+
+```json
+{
+  "default_timezone": "America/Los_Angeles",
+  "default_hour_slots": [9, 17],
+  "default_category_id": "20",
+  "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+  "privacy_status": "private"
+}
+```
+
+**Characteristics:**
+- Timezone: PST/PDT (GMT-8/-7)
+- Time slots: 9:00 and 17:00
+
+#### 🇬🇧 United Kingdom
+
+```json
+{
+  "default_timezone": "Europe/London",
+  "default_hour_slots": [12, 20],
+  "default_category_id": "20",
+  "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+  "privacy_status": "private"
+}
+```
+
+**Characteristics:**
+- Timezone: GMT/BST (GMT+0/+1)
+- Time slots: 12:00 and 20:00
+
+#### 🇯🇵 Japan
+
+```json
+{
+  "default_timezone": "Asia/Tokyo",
+  "default_hour_slots": [19, 22],
+  "default_category_id": "20",
+  "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+  "privacy_status": "private"
+}
+```
+
+**Characteristics:**
+- Timezone: JST (GMT+9)
+- Time slots: 19:00 and 22:00 (prime time)
+
+#### 📺 Multiple Videos Per Day
+
+```json
+{
+  "default_timezone": "America/Sao_Paulo",
+  "default_hour_slots": [8, 12, 16, 20],
+  "default_category_id": "20",
+  "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+  "privacy_status": "private"
+}
+```
+
+**Characteristics:**
+- 4 videos per day: 8:00, 12:00, 16:00, 20:00
+- Ideal for channels with high publishing frequency
+
+#### 🎮 Specific Category (Music)
+
+```json
+{
+  "default_timezone": "America/Sao_Paulo",
+  "default_hour_slots": [8, 18],
+  "default_category_id": "10",
+  "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+  "privacy_status": "private"
+}
+```
+
+**Common categories:**
+- `1` - Film & Animation
+- `10` - Music
+- `20` - Gaming (default)
+- `22` - People & Blogs
+- `23` - Comedy
+- `24` - Entertainment
+
+#### 🔓 Public Videos
+
+```json
+{
+  "default_timezone": "America/Sao_Paulo",
+  "default_hour_slots": [8, 18],
+  "default_category_id": "20",
+  "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+  "privacy_status": "public"
+}
+```
+
+**Privacy options:**
+- `"private"` - Only you can see
+- `"unlisted"` - Anyone with the link can see
+- `"public"` - Visible to everyone
+
+#### 📅 Custom Start Date
+
+```json
+{
+  "default_timezone": "America/Sao_Paulo",
+  "default_hour_slots": [8, 18],
+  "default_category_id": "20",
+  "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+  "privacy_status": "private",
+  "default_start_date": "2025-12-01"
+}
+```
+
+**Format:** `YYYY-MM-DD` (e.g., `"2025-12-01"` for December 1st, 2025)
+
+**How it works:**
+- If `default_start_date` is set, videos will be scheduled starting from that date
+- If not set (or `null`), videos will start from today's date
+- You can override this for a specific run using: `--start-date 2025-12-15`
+
+#### 📆 Weekly Scheduling
+
+```json
+{
+  "default_timezone": "America/Sao_Paulo",
+  "default_category_id": "20",
+  "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+  "privacy_status": "private",
+  "schedule_mode": "weekly",
+  "schedule_day": "monday",
+  "schedule_hour": 12
+}
+```
+
+**Characteristics:**
+- `schedule_mode`: Set to `"weekly"` (default is `"daily"`)
+- `schedule_day`: Day of the week (`"monday"`, `"tuesday"`, `"wednesday"`, `"thursday"`, `"friday"`, `"saturday"`, `"sunday"`)
+- `schedule_hour`: Hour of the day (0-23, e.g., `12` for 12:00 PM)
+
+**How it works:**
+- The script automatically finds the **next occurrence** of the specified day from today
+- Each video is scheduled for consecutive weeks on the same day and time
+- No need to specify a start date - it starts from the next available day
+
+#### 📝 With Description and Tags
+
+```json
+{
+  "default_timezone": "America/Sao_Paulo",
+  "default_hour_slots": [8, 18],
+  "default_category_id": "20",
+  "privacy_status": "private",
+  "description": "Check out my gaming videos!\n\nSubscribe for more content.",
+  "tags": ["gaming", "hollow knight", "indie games"]
+}
+```
+
+**Note:** Description and tags will be applied to all videos in the batch.
 
 ## Usage
 
@@ -164,6 +368,33 @@ Common categories:
 python youtube_bulk_scheduler.py --category-id 24
 ```
 
+#### `--description` (Optional)
+Global description for all videos. Default: empty string (from config).
+
+```bash
+python youtube_bulk_scheduler.py --description "Check out my videos!\n\nSubscribe for more content."
+```
+
+#### `--tags` (Optional)
+Tags for all videos (comma-separated). Default: empty (from config).
+
+```bash
+python youtube_bulk_scheduler.py --tags "gaming, hollow knight, indie games"
+```
+
+#### `--dry-run` (Optional)
+Preview what would be uploaded without actually uploading.
+
+```bash
+python youtube_bulk_scheduler.py --dry-run
+```
+
+This is useful to:
+- Check if titles are valid
+- See the scheduling plan
+- Verify file sizes
+- Test before actual upload
+
 ### Complete Examples
 
 **Example 1**: Custom start date with default time slots
@@ -176,19 +407,80 @@ python youtube_bulk_scheduler.py --start-date 2025-12-15
 python youtube_bulk_scheduler.py --timezone America/New_York --hour-slots 10 14 18
 ```
 
-**Example 3**: Full customization
+**Example 3**: Full customization with description and tags
 ```bash
 python youtube_bulk_scheduler.py \
   --start-date 2025-12-01 \
   --timezone America/Sao_Paulo \
   --hour-slots 8 12 16 20 \
-  --category-id 20
+  --category-id 20 \
+  --description "My gaming videos" \
+  --tags "gaming, indie, hollow knight"
 ```
 
 **Example 4**: One video per day at noon
 ```bash
 python youtube_bulk_scheduler.py --hour-slots 12
 ```
+
+**Example 5**: Preview before uploading
+```bash
+python youtube_bulk_scheduler.py --dry-run
+```
+
+### Common Use Cases
+
+#### Use Case 1: Daily Upload Schedule
+**Goal**: Upload 2 videos per day for a week
+
+**Setup**:
+1. Place 14 videos in `clips/` folder
+2. Run: `python youtube_bulk_scheduler.py --hour-slots 8 18`
+
+**Result**: 
+- Day 1: Videos 1-2 at 8:00 and 18:00
+- Day 2: Videos 3-4 at 8:00 and 18:00
+- ... and so on
+
+#### Use Case 2: Weekly Series
+**Goal**: Upload one video every Monday at 10 AM
+
+**Setup**:
+1. Edit `config.json`:
+   ```json
+   {
+     "schedule_mode": "weekly",
+     "schedule_day": "monday",
+     "schedule_hour": 10
+   }
+   ```
+2. Place videos in `clips/` folder
+3. Run: `python youtube_bulk_scheduler.py`
+
+**Result**: Each video scheduled for consecutive Mondays at 10:00 AM
+
+#### Use Case 3: Videos with Subtitles and Thumbnails
+**Goal**: Upload videos with accessibility features
+
+**Setup**:
+1. Organize files:
+   ```
+   clips/
+     video1.mp4
+     video1.srt        # Subtitles
+     video1.png        # Thumbnail
+     video2.mp4
+     video2.srt
+     video2.png
+   ```
+2. Run: `python youtube_bulk_scheduler.py`
+
+**Result**: Videos uploaded with subtitles and custom thumbnails
+
+**Note**: 
+- Subtitle files: `.srt` or `.vtt` format, same name as video
+- Thumbnail files: `.png` format, same name as video
+- Language detection: If subtitle filename contains language code (e.g., `video.pt-BR.srt`), it will be detected automatically
 
 ## How It Works
 
@@ -229,7 +521,6 @@ youtube-bulk-scheduler/
 ├── requirements.txt             # Python dependencies
 ├── README.md                    # This file (English)
 ├── README.pt-BR.md             # This file (Portuguese)
-├── CONFIG_EXAMPLES.md           # Configuration examples for different regions
 ├── .gitignore                   # Git ignore rules
 ├── config.json                  # Default configuration (editable)
 ├── client_secret.json          # Your OAuth credentials (not in git)

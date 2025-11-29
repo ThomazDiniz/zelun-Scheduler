@@ -49,7 +49,7 @@ Um script Python para fazer upload e agendar automaticamente múltiplos vídeos 
    - Edite `config.json` com suas configurações preferidas
    - O arquivo vem com padrões sensatos para o fuso horário do Brasil
    - Isso permite pular argumentos de linha de comando em cada execução
-   - Veja a seção [Configuração](#configuração) e `CONFIG_EXAMPLES.md` para exemplos
+   - Veja a seção [Configuração](#configuração) no README.md para exemplos
 
 5. **Crie a estrutura de pastas**:
    ```
@@ -229,7 +229,6 @@ youtube-bulk-scheduler/
 ├── requirements.txt             # Dependências do Python
 ├── README.md                    # Este arquivo (inglês)
 ├── README.pt-BR.md             # Este arquivo (português)
-├── CONFIG_EXAMPLES.md           # Exemplos de configuração para diferentes regiões
 ├── .gitignore                   # Regras de ignore do Git
 ├── config.json                  # Configuração padrão (editável)
 ├── client_secret.json          # Suas credenciais OAuth (não está no git)

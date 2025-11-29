@@ -98,7 +98,7 @@ def load_config() -> dict[str, Any]:
                 return config
         except json.JSONDecodeError as e:
             print(f"⚠️  WARNING: Invalid JSON in {CONFIG_FILE.name}: {e}")
-            print(f"Using default configuration. Please check CONFIG_EXAMPLES.md for configuration examples.\n")
+            print(f"Using default configuration. Please check README.md for configuration examples.\n")
             return default_config
         except Exception as e:
             print(f"⚠️  WARNING: Error reading {CONFIG_FILE.name}: {e}")
