@@ -45,7 +45,13 @@ A Python script to automatically upload and schedule multiple videos to your You
    - Rename it to `client_secret.json` and place it in the script directory
    - See `client_secret_sample.json` for the expected format
 
-4. **Create folder structure**:
+4. **Configure default settings (optional)**:
+   - Edit `config.json` with your preferred default settings
+   - The file comes with sensible defaults for Brazil timezone
+   - This allows you to skip command-line arguments on every run
+   - See [Configuration](#configuration) section and `CONFIG_EXAMPLES.md` for examples
+
+5. **Create folder structure**:
    ```
    youtube-bulk-scheduler/
    ├── youtube_bulk_scheduler.py
@@ -55,6 +61,33 @@ A Python script to automatically upload and schedule multiple videos to your You
    │   └── video2.mp4
    └── sent/                       # Uploaded videos moved here (auto-created)
    ```
+
+## Configuration
+
+The `config.json` file contains default values for the script. You can edit it to customize your preferences without passing command-line arguments every time.
+
+Edit `config.json` with your preferences:
+   ```json
+   {
+     "default_timezone": "America/Sao_Paulo",
+     "default_hour_slots": [8, 18],
+     "default_category_id": "20",
+     "quota_reset_hour": 5,
+     "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+     "privacy_status": "private"
+   }
+   ```
+
+3. **Note**: Command-line arguments always override config file values.
+
+### Configuration Options
+
+- **`default_timezone`**: Default timezone for scheduling (e.g., `"America/Sao_Paulo"`)
+- **`default_hour_slots`**: Default hour slots per day (array of integers, 0-23)
+- **`default_category_id`**: Default YouTube category ID (string)
+- **`quota_reset_hour`**: Hour when YouTube quota resets (0-23, default: 5)
+- **`video_extensions`**: List of video file extensions to process
+- **`privacy_status`**: Default privacy status (`"private"`, `"unlisted"`, or `"public"`)
 
 ## Usage
 
@@ -196,7 +229,9 @@ youtube-bulk-scheduler/
 ├── requirements.txt             # Python dependencies
 ├── README.md                    # This file (English)
 ├── README.pt-BR.md             # This file (Portuguese)
+├── CONFIG_EXAMPLES.md           # Configuration examples for different regions
 ├── .gitignore                   # Git ignore rules
+├── config.json                  # Default configuration (editable)
 ├── client_secret.json          # Your OAuth credentials (not in git)
 ├── token.json                  # OAuth token cache (not in git)
 ├── client_secret_sample.json   # Sample credentials format
@@ -267,6 +302,7 @@ The script includes comprehensive error handling:
 - **Never commit credentials**: `token.json` and `client_secret.json` are in `.gitignore`
 - **Keep credentials private**: These files contain sensitive OAuth information
 - **Use sample files**: Commit `*_sample.json` files as templates only
+- **Config file**: `config.json` is committed as it only contains non-sensitive preferences
 
 ## License
 

@@ -1,0 +1,11 @@
+{
+  "default_timezone": "America/Sao_Paulo",
+  "default_hour_slots": [8, 18],
+  "default_category_id": "20",
+  "quota_reset_hour": 5,
+  "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+  "auto_retry_on_failure": false,
+  "max_retries": 3,
+  "privacy_status": "private"
+}
+

@@ -2,6 +2,24 @@
 token.json
 client_secret.json
 
+# Upload History - DO NOT COMMIT
+upload_history.json
+
+# Error Logs - DO NOT COMMIT
+error_log.txt
+
+# Lock Files
+.upload_lock
+.script.lock
+
+# Backup Files - DO NOT COMMIT
+backups/
+*.backup
+
+# Improvement Documentation - DO NOT COMMIT
+MELHORIAS_SUGERIDAS.md
+MELHORIAS_RESUMO.md
+
 # Video Files
 *.mp4
 *.mov

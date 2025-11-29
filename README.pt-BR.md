@@ -45,7 +45,13 @@ Um script Python para fazer upload e agendar automaticamente múltiplos vídeos 
    - Renomeie para `client_secret.json` e coloque no diretório do script
    - Veja `client_secret_sample.json` para o formato esperado
 
-4. **Crie a estrutura de pastas**:
+4. **Configure as configurações padrão (opcional)**:
+   - Edite `config.json` com suas configurações preferidas
+   - O arquivo vem com padrões sensatos para o fuso horário do Brasil
+   - Isso permite pular argumentos de linha de comando em cada execução
+   - Veja a seção [Configuração](#configuração) e `CONFIG_EXAMPLES.md` para exemplos
+
+5. **Crie a estrutura de pastas**:
    ```
    youtube-bulk-scheduler/
    ├── youtube_bulk_scheduler.py
@@ -55,6 +61,33 @@ Um script Python para fazer upload e agendar automaticamente múltiplos vídeos 
    │   └── video2.mp4
    └── sent/                       # Vídeos enviados movidos para cá (criado automaticamente)
    ```
+
+## Configuração
+
+O arquivo `config.json` contém valores padrão para o script. Você pode editá-lo para personalizar suas preferências sem precisar passar argumentos de linha de comando toda vez.
+
+Edite `config.json` com suas preferências:
+   ```json
+   {
+     "default_timezone": "America/Sao_Paulo",
+     "default_hour_slots": [8, 18],
+     "default_category_id": "20",
+     "quota_reset_hour": 5,
+     "video_extensions": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"],
+     "privacy_status": "private"
+   }
+   ```
+
+3. **Nota**: Argumentos de linha de comando sempre sobrescrevem valores do arquivo de configuração.
+
+### Opções de Configuração
+
+- **`default_timezone`**: Fuso horário padrão para agendamento (ex.: `"America/Sao_Paulo"`)
+- **`default_hour_slots`**: Horários padrão por dia (array de inteiros, 0-23)
+- **`default_category_id`**: ID da categoria padrão do YouTube (string)
+- **`quota_reset_hour`**: Hora em que a cota do YouTube é resetada (0-23, padrão: 5)
+- **`video_extensions`**: Lista de extensões de arquivo de vídeo para processar
+- **`privacy_status`**: Status de privacidade padrão (`"private"`, `"unlisted"`, ou `"public"`)
 
 ## Uso
 
@@ -196,7 +229,9 @@ youtube-bulk-scheduler/
 ├── requirements.txt             # Dependências do Python
 ├── README.md                    # Este arquivo (inglês)
 ├── README.pt-BR.md             # Este arquivo (português)
+├── CONFIG_EXAMPLES.md           # Exemplos de configuração para diferentes regiões
 ├── .gitignore                   # Regras de ignore do Git
+├── config.json                  # Configuração padrão (editável)
 ├── client_secret.json          # Suas credenciais OAuth (não está no git)
 ├── token.json                  # Cache do token OAuth (não está no git)
 ├── client_secret_sample.json   # Formato de exemplo das credenciais
@@ -267,6 +302,7 @@ O script inclui tratamento abrangente de erros:
 - **Nunca faça commit de credenciais**: `token.json` e `client_secret.json` estão no `.gitignore`
 - **Mantenha as credenciais privadas**: Esses arquivos contêm informações sensíveis do OAuth
 - **Use arquivos de exemplo**: Faça commit dos arquivos `*_sample.json` apenas como templates
+- **Arquivo de configuração**: `config.json` é commitado pois contém apenas preferências não sensíveis
 
 ## Licença
 

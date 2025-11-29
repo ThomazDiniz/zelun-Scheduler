@@ -1,0 +1,47 @@
+[
+  {
+    "timestamp": "2025-01-15T10:30:45.123456",
+    "filename": "video1.mp4",
+    "youtube_id": "dQw4w9WgXcQ",
+    "scheduled_time": "2025-01-16T08:00:00-03:00",
+    "scheduled_time_readable": "2025-01-16 08:00:00 BRT",
+    "file_size_bytes": 524288000,
+    "file_size_readable": "500.00 MB",
+    "upload_time_seconds": 45.2,
+    "upload_time_readable": "45.2s",
+    "upload_speed_bytes_per_second": 11592920,
+    "upload_speed_readable": "11.05 MB/s",
+    "status": "success",
+    "error_message": null
+  },
+  {
+    "timestamp": "2025-01-15T10:32:10.654321",
+    "filename": "video2.mp4",
+    "youtube_id": "jNQXAC9IVRw",
+    "scheduled_time": "2025-01-16T18:00:00-03:00",
+    "scheduled_time_readable": "2025-01-16 18:00:00 BRT",
+    "file_size_bytes": 1048576000,
+    "file_size_readable": "1000.00 MB",
+    "upload_time_seconds": 90.5,
+    "upload_time_readable": "1m 30s",
+    "upload_speed_bytes_per_second": 11581215,
+    "upload_speed_readable": "11.04 MB/s",
+    "status": "success",
+    "error_message": null
+  },
+  {
+    "type": "execution_summary",
+    "execution_timestamp": "2025-01-15T10:35:00.000000",
+    "execution_date": "2025-01-15 10:35:00",
+    "total_videos": 2,
+    "successful_uploads": 2,
+    "failed_uploads": 0,
+    "total_uploaded_size_bytes": 1572864000,
+    "total_uploaded_size_readable": "1.50 GB",
+    "total_upload_time_seconds": 135.7,
+    "total_upload_time_readable": "2m 15s",
+    "average_speed_bytes_per_second": 11587030,
+    "average_speed_readable": "11.05 MB/s"
+  }
+]
+
