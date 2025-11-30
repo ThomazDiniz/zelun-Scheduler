@@ -12,10 +12,6 @@ relative_links:
   enabled: true
   collections: true
 
-# Exclude verify_tiktok from Jekyll processing
-exclude:
-  - verify_tiktok
-
 # Site settings
 url: https://thomazdiniz.github.io
 baseurl: /zelun-Scheduler
