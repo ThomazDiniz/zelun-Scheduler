@@ -51,7 +51,6 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import ResumableUploadError, HttpError
 from tqdm import tqdm
-import upload_tracker
 
 # Required scopes for video uploads, captions, and thumbnails
 SCOPES = [
@@ -182,14 +181,6 @@ Examples:
         help="Tags for all videos (comma-separated). Default from config."
     )
     
-    parser.add_argument(
-        "--platforms",
-        type=str,
-        nargs="+",
-        default=["youtube"],
-        help="Platforms to upload to. Used for tracking when uploading to multiple platforms. Default: youtube"
-    )
-
     return parser.parse_args()
 
 
@@ -702,13 +693,6 @@ def upload_and_schedule(
         status="success"
     )
     
-    # Mark as uploaded in tracking system
-    upload_tracker.mark_uploaded(
-        filename=video_path.name,
-        platform="youtube",
-        video_id=youtube_id,
-        scheduled_time=publish_time
-    )
 
     return {
         'response': response,
@@ -851,19 +835,18 @@ def _main_impl() -> None:
         log_error(error_msg, "ERROR")
         raise FileNotFoundError(error_msg)
 
-    # Find video files (only those not yet uploaded to YouTube)
+    # Find video files
     print("📁 Scanning for video files...")
     video_extensions = set(config.get("video_extensions", [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"]))
     
-    # Get platforms to check - default to YouTube only, but can be configured
-    platforms_to_check = getattr(args, 'platforms', ['youtube'])
-    
-    # Get pending videos (not uploaded to YouTube yet)
-    videos = upload_tracker.get_pending_videos(CLIPS_FOLDER, platforms_to_check, video_extensions)
+    videos = [
+        f for f in CLIPS_FOLDER.iterdir()
+        if f.is_file() and f.suffix.lower() in video_extensions
+    ]
+    videos = sorted(videos, key=lambda x: x.name)
     
     if not videos:
-        print(f"   ✓ No pending videos found in: {CLIPS_FOLDER}")
-        print(f"   (All videos have already been uploaded to YouTube)")
+        print(f"   ✓ No videos found in: {CLIPS_FOLDER}")
         return
 
     # Calculate total size
@@ -994,10 +977,14 @@ def _main_impl() -> None:
             if result.get('youtube_id'):
                 uploaded_video_ids.append(result['youtube_id'])
 
-            # Check if should move to sent (only if uploaded to all requested platforms)
-            platforms_requested = getattr(args, 'platforms', ['youtube'])
-            if upload_tracker.should_move_to_sent(video_path.name, platforms_requested):
-                upload_tracker.move_to_sent(video_path)
+            # Move to sent folder after successful upload
+            SENT_FOLDER.mkdir(exist_ok=True)
+            new_path = SENT_FOLDER / video_path.name
+            try:
+                shutil.move(str(video_path), str(new_path))
+                print(f"   📦 Moved to sent folder: {video_path.name}")
+            except Exception as e:
+                print(f"   ⚠️  Warning: Could not move {video_path.name} to sent folder: {e}")
 
         except (ResumableUploadError, HttpError) as e:
             # Check if it's the upload limit exceeded error
@@ -1032,12 +1019,6 @@ def _main_impl() -> None:
                 e
             )
 
-            # Mark as failed in tracking
-            upload_tracker.mark_uploaded(
-                filename=video_path.name,
-                platform="youtube",
-                error=error_msg
-            )
             
             # Save failed upload to history
             try:

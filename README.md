@@ -1,6 +1,6 @@
 # Zelun Scheduler
 
-A Python script to automatically upload and schedule multiple videos to your YouTube channel. The script processes videos from a local folder, uploads them to YouTube, schedules them for publication at specified times, and organizes uploaded videos using an intelligent tracking system.
+A Python script to automatically upload and schedule multiple videos to your YouTube channel. The script processes videos from a local folder, uploads them to YouTube, schedules them for publication at specified times, and organizes uploaded videos.
 
 > 🇧🇷 **Português (Brasil)**: [README.pt-BR.md](README.pt-BR.md)
 
@@ -23,7 +23,6 @@ A Python script to automatically upload and schedule multiple videos to your You
   - [Video Processing Flow](#video-processing-flow)
   - [Authentication](#authentication)
   - [Quota Management](#quota-management)
-  - [Tracking System](#tracking-system)
 - [Project Structure](#project-structure)
 - [API Documentation](#api-documentation)
   - [Module Overview](#module-overview)
@@ -44,7 +43,7 @@ A Python script to automatically upload and schedule multiple videos to your You
 - ✅ **YouTube Upload**: Upload videos to your YouTube channel
 - ✅ **Bulk Upload**: Process multiple videos in one run
 - ✅ **Automatic Scheduling**: Schedule videos for consecutive days at configurable times
-- ✅ **Intelligent Tracking**: Track upload status and move files after successful upload
+- ✅ **File Organization**: Automatically moves uploaded videos to `sent/` folder
 - ✅ **Quota Management**: Automatically checks API quota limits
 - ✅ **Error Handling**: Graceful error handling with clear messages
 - ✅ **Relative Paths**: Uses script-relative paths for portability
@@ -89,7 +88,6 @@ A Python script to automatically upload and schedule multiple videos to your You
    zelun-scheduler/
    ├── youtube_bulk_scheduler.py
    ├── gui_wrapper.py
-   ├── upload_tracker.py
    ├── client_secret.json          # YouTube credentials (not in git)
    ├── clips/                      # Place videos here
    │   ├── video1.mp4
@@ -541,8 +539,7 @@ python youtube_bulk_scheduler.py --dry-run
 
 1. **Script Execution**: The script runs from its directory location
 2. **Video Discovery**: Scans the `clips/` folder for video files
-3. **Tracking Check**: Checks upload tracking to see which videos need uploading
-4. **Scheduling Logic**: 
+3. **Scheduling Logic**: 
    - Videos are scheduled starting from the `--start-date` (or today)
    - Videos are distributed across days based on `--hour-slots`
    - Example: With slots `[8, 18]` and 5 videos:
@@ -551,9 +548,8 @@ python youtube_bulk_scheduler.py --dry-run
      - Video 3: Day 2 at 8:00
      - Video 4: Day 2 at 18:00
      - Video 5: Day 3 at 8:00
-5. **Upload**: Each video is uploaded to the selected platform(s) and scheduled for publication
-6. **Tracking Update**: Upload status is saved to `logs/upload_tracking.json`
-7. **File Organization**: Videos are moved to `sent/` folder only when uploaded to ALL requested platforms
+4. **Upload**: Each video is uploaded to YouTube and scheduled for publication
+5. **File Organization**: Videos are moved to `sent/` folder after successful upload
 
 ### Authentication
 
@@ -570,30 +566,6 @@ python youtube_bulk_scheduler.py --dry-run
 - If quota is exceeded, the script stops and shows a message
 - Resume by running the script again after quota reset
 
-### Tracking System
-
-The scheduler uses an intelligent tracking system to manage uploads:
-
-- **Serialized State**: Upload status is saved in `logs/upload_tracking.json`
-- **Smart File Movement**: Videos are moved to `sent/` folder after successful upload
-- **State Persistence**: Tracking state is maintained between application sessions
-
-**Example Tracking Entry**:
-```json
-{
-  "video1.mp4": {
-    "youtube": {
-      "uploaded": true,
-      "uploaded_at": "2025-01-15T10:30:00",
-      "video_id": "abc123",
-      "scheduled_time": "2025-01-16T08:00:00"
-    }
-  }
-}
-```
-
-**Behavior**:
-- File moved to `sent/` folder after YouTube upload completes successfully
 
 ## Project Structure
 
@@ -628,7 +600,7 @@ The script is organized into several functional modules:
 - **Authentication**: OAuth 2.0 authentication with YouTube API
 - **Video Processing**: Upload, scheduling, and metadata management
 - **File Management**: Handling videos, subtitles, thumbnails
-- **History & Logging**: Tracking uploads and errors
+- **History & Logging**: Recording upload history and errors
 - **Utilities**: Helper functions for formatting and validation
 
 ### Constants
@@ -958,8 +930,8 @@ The script includes comprehensive error handling:
 - Common format: `Continent/City` (e.g., `America/Sao_Paulo`)
 
 #### Video not being moved to sent folder
-- Check tracking in `logs/upload_tracking.json`
-- Files are moved after successful YouTube upload
+- Files are automatically moved to `sent/` folder after successful upload
+- If a file wasn't moved, check if the upload completed successfully
 
 ## Security Notes
 

@@ -7,7 +7,6 @@ gui_settings.json
 
 # Upload History - DO NOT COMMIT
 logs/upload_history.json
-logs/upload_tracking.json
 
 # Error Logs - DO NOT COMMIT
 logs/error_log.txt
