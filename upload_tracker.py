@@ -1,8 +1,8 @@
 """
 Upload Tracking System
 
-Tracks upload status for videos across multiple platforms (YouTube, TikTok).
-Only moves files to 'sent' folder when uploaded to all selected platforms.
+Tracks upload status for videos on YouTube.
+Only moves files to 'sent' folder when uploaded.
 """
 
 import json
@@ -46,8 +46,7 @@ def get_video_status(filename: str) -> dict[str, Any]:
     """Get upload status for a specific video."""
     tracking = load_tracking()
     return tracking.get(filename, {
-        "youtube": {"uploaded": False},
-        "tiktok": {"uploaded": False}
+        "youtube": {"uploaded": False}
     })
 
 
@@ -58,7 +57,7 @@ def mark_uploaded(filename: str, platform: str, video_id: Optional[str] = None,
     
     Args:
         filename: Name of the video file
-        platform: 'youtube' or 'tiktok'
+        platform: 'youtube'
         video_id: ID of the uploaded video (if successful)
         scheduled_time: When the video is scheduled to publish
         error: Error message if upload failed
@@ -67,8 +66,7 @@ def mark_uploaded(filename: str, platform: str, video_id: Optional[str] = None,
     
     if filename not in tracking:
         tracking[filename] = {
-            "youtube": {"uploaded": False},
-            "tiktok": {"uploaded": False}
+            "youtube": {"uploaded": False}
         }
     
     tracking[filename][platform] = {
@@ -88,7 +86,7 @@ def is_uploaded_to_all(filename: str, platforms: list[str]) -> bool:
     
     Args:
         filename: Name of the video file
-        platforms: List of platforms to check (e.g., ['youtube', 'tiktok'])
+        platforms: List of platforms to check (e.g., ['youtube'])
     
     Returns:
         True if uploaded to all platforms, False otherwise
@@ -109,7 +107,7 @@ def get_pending_videos(clips_folder: Path, platforms: list[str],
     
     Args:
         clips_folder: Folder containing video files
-        platforms: List of platforms to check (e.g., ['youtube', 'tiktok'])
+        platforms: List of platforms to check (e.g., ['youtube'])
         video_extensions: Set of valid video file extensions
     
     Returns:
@@ -149,7 +147,7 @@ def should_move_to_sent(filename: str, platforms: list[str]) -> bool:
 
 def move_to_sent(video_path: Path) -> None:
     """
-    Move video to 'sent' folder after successful upload to all platforms.
+    Move video to 'sent' folder after successful upload.
     
     Args:
         video_path: Path to the video file
@@ -171,18 +169,9 @@ def get_upload_summary() -> dict[str, Any]:
     
     total_videos = len(tracking)
     youtube_uploaded = sum(1 for v in tracking.values() if v.get("youtube", {}).get("uploaded", False))
-    tiktok_uploaded = sum(1 for v in tracking.values() if v.get("tiktok", {}).get("uploaded", False))
-    both_uploaded = sum(1 for v in tracking.values() 
-                       if v.get("youtube", {}).get("uploaded", False) 
-                       and v.get("tiktok", {}).get("uploaded", False))
     
     return {
         "total_videos": total_videos,
         "youtube_uploaded": youtube_uploaded,
-        "tiktok_uploaded": tiktok_uploaded,
-        "both_uploaded": both_uploaded,
-        "youtube_only": youtube_uploaded - both_uploaded,
-        "tiktok_only": tiktok_uploaded - both_uploaded,
-        "not_uploaded": total_videos - youtube_uploaded - tiktok_uploaded + both_uploaded
+        "not_uploaded": total_videos - youtube_uploaded
     }
-
