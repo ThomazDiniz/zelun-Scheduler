@@ -15,8 +15,6 @@ relative_links:
 # Include all files
 include:
   - verify_tiktok
-  - verify_tiktok.txt
-  - verify_tiktok.html
 
 # Site settings
 url: https://thomazdiniz.github.io
