@@ -1,0 +1,14 @@
+# GitHub Pages Configuration for Zelun Scheduler
+
+title: Zelun Scheduler
+description: The easiest way to schedule, automate, and manage bulk video uploads for YouTube and TikTok
+theme: minima
+
+# Enable GitHub Pages from docs folder
+plugins:
+  - jekyll-relative-links
+
+relative_links:
+  enabled: true
+  collections: true
+

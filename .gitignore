@@ -2,11 +2,16 @@
 token.json
 client_secret.json
 
+# TikTok API Credentials - DO NOT COMMIT
+tiktok_token.json
+tiktok_client_secret.json
+
 # GUI Settings - DO NOT COMMIT
 gui_settings.json
 
 # Upload History - DO NOT COMMIT
 logs/upload_history.json
+logs/upload_tracking.json
 
 # Error Logs - DO NOT COMMIT
 logs/error_log.txt

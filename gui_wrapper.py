@@ -1,8 +1,8 @@
 """
-GUI Wrapper for YouTube Bulk Scheduler
+GUI Wrapper for Zelun Scheduler
 
-This is a simple GUI wrapper that calls the main script.
-The main script (youtube_bulk_scheduler.py) is NOT modified.
+This is a simple GUI wrapper that calls the main scripts.
+Supports uploading to YouTube, TikTok, or both platforms.
 """
 
 import os
@@ -16,15 +16,16 @@ from pathlib import Path
 from tkinter import scrolledtext, ttk, messagebox
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
-MAIN_SCRIPT = SCRIPT_DIR / "youtube_bulk_scheduler.py"
+YOUTUBE_SCRIPT = SCRIPT_DIR / "youtube_bulk_scheduler.py"
+TIKTOK_SCRIPT = SCRIPT_DIR / "tiktok_bulk_scheduler.py"
 GUI_SETTINGS_FILE = SCRIPT_DIR / "gui_settings.json"
 
 
-class YouTubeSchedulerGUI:
+class BulkSchedulerGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("YouTube Bulk Scheduler")
-        self.root.geometry("900x700")
+        self.root.title("Zelun Scheduler")
+        self.root.geometry("1000x750")
         
         # Variables
         self.dry_run_var = tk.BooleanVar()
@@ -40,6 +41,7 @@ class YouTubeSchedulerGUI:
         self.process_thread = None
         self.output_queue = queue.Queue()
         self.is_running = False
+        self.current_platform = None  # 'youtube', 'tiktok', or 'both'
         
         # Load saved settings
         self.load_settings()
@@ -55,7 +57,7 @@ class YouTubeSchedulerGUI:
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         # Title
-        title_label = ttk.Label(main_frame, text="YouTube Bulk Video Scheduler", font=("Arial", 16, "bold"))
+        title_label = ttk.Label(main_frame, text="Zelun Scheduler", font=("Arial", 16, "bold"))
         title_label.grid(row=0, column=0, columnspan=2, pady=10)
         
         # Configuration section
@@ -106,23 +108,53 @@ class YouTubeSchedulerGUI:
         # Configure column weights for resizing
         config_frame.columnconfigure(1, weight=1)
         
-        # Buttons
-        button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=2, column=0, columnspan=2, pady=10)
+        # Platform selection and buttons
+        platform_frame = ttk.LabelFrame(main_frame, text="Upload Platform", padding="10")
+        platform_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
         
-        self.run_button = ttk.Button(button_frame, text="Run Scheduler", command=self.run_scheduler)
-        self.run_button.pack(side=tk.LEFT, padx=5)
+        # Upload buttons
+        upload_button_frame = ttk.Frame(platform_frame)
+        upload_button_frame.grid(row=0, column=0, columnspan=3, pady=5)
         
-        self.stop_button = ttk.Button(button_frame, text="Stop", command=self.stop_process, state=tk.DISABLED)
+        self.youtube_button = ttk.Button(
+            upload_button_frame, 
+            text="📺 Upload to YouTube", 
+            command=lambda: self.run_scheduler("youtube"),
+            width=20
+        )
+        self.youtube_button.pack(side=tk.LEFT, padx=5)
+        
+        self.tiktok_button = ttk.Button(
+            upload_button_frame, 
+            text="🎵 Upload to TikTok", 
+            command=lambda: self.run_scheduler("tiktok"),
+            width=20
+        )
+        self.tiktok_button.pack(side=tk.LEFT, padx=5)
+        
+        self.both_button = ttk.Button(
+            upload_button_frame, 
+            text="🚀 Upload to Both", 
+            command=lambda: self.run_scheduler("both"),
+            width=20
+        )
+        self.both_button.pack(side=tk.LEFT, padx=5)
+        
+        # Control buttons
+        control_frame = ttk.Frame(main_frame)
+        control_frame.grid(row=3, column=0, columnspan=2, pady=10)
+        
+        self.stop_button = ttk.Button(control_frame, text="Stop", command=self.stop_process, state=tk.DISABLED)
         self.stop_button.pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(button_frame, text="Open Clips Folder", command=self.open_clips_folder).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="View History", command=self.view_history).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="View Logs", command=self.view_logs).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="Open Clips Folder", command=self.open_clips_folder).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="View History", command=self.view_history).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="View Logs", command=self.view_logs).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="View Tracking", command=self.view_tracking).pack(side=tk.LEFT, padx=5)
         
         # Output area
         output_frame = ttk.LabelFrame(main_frame, text="Output", padding="10")
-        output_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
+        output_frame.grid(row=4, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
         
         self.output_text = scrolledtext.ScrolledText(output_frame, height=15, width=80)
         self.output_text.pack(fill=tk.BOTH, expand=True)
@@ -131,24 +163,77 @@ class YouTubeSchedulerGUI:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(3, weight=1)
+        main_frame.rowconfigure(4, weight=1)
         
-    def run_scheduler(self):
-        """Run the scheduler script with current settings (asynchronously)."""
+    def run_scheduler(self, platform: str = "youtube"):
+        """
+        Run the scheduler script with current settings (asynchronously).
+        
+        Args:
+            platform: 'youtube', 'tiktok', or 'both'
+        """
         if self.is_running:
             messagebox.showwarning("Warning", "Process is already running!")
             return
         
+        self.current_platform = platform
         self.output_text.delete(1.0, tk.END)
-        self.output_text.insert(tk.END, "Starting YouTube Scheduler...\n\n")
         
-        # Disable run button and enable stop button
-        self.run_button.config(state=tk.DISABLED)
+        platform_names = {
+            "youtube": "YouTube",
+            "tiktok": "TikTok",
+            "both": "YouTube & TikTok"
+        }
+        self.output_text.insert(tk.END, f"Starting {platform_names[platform]} Scheduler...\n\n")
+        
+        # Disable all upload buttons and enable stop button
+        self.youtube_button.config(state=tk.DISABLED)
+        self.tiktok_button.config(state=tk.DISABLED)
+        self.both_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
         self.is_running = True
         
-        # Build command
-        cmd = [sys.executable, str(MAIN_SCRIPT)]
+        # Build command based on platform
+        if platform == "both":
+            # For both, we need to run sequentially
+            # Build commands for both platforms
+            youtube_cmd = self._build_command("youtube")
+            tiktok_cmd = self._build_command("tiktok")
+            
+            # Save settings before running
+            self.save_settings()
+            
+            # Start the process in a separate thread
+            self.process_thread = threading.Thread(
+                target=self._run_both_platforms_thread, 
+                args=(youtube_cmd, tiktok_cmd), 
+                daemon=True
+            )
+            self.process_thread.start()
+        else:
+            cmd = self._build_command(platform)
+            
+            # Save settings before running
+            self.save_settings()
+            
+            # Start the process in a separate thread
+            self.process_thread = threading.Thread(target=self._run_process_thread, args=(cmd,), daemon=True)
+            self.process_thread.start()
+        
+        # Start checking for output
+        self.check_output()
+    
+    def _build_command(self, platform: str) -> list:
+        """Build command for a specific platform."""
+        if platform == "youtube":
+            cmd = [sys.executable, str(YOUTUBE_SCRIPT)]
+            # For single platform, only that platform is required
+            platforms_arg = ["youtube"]
+        elif platform == "tiktok":
+            cmd = [sys.executable, str(TIKTOK_SCRIPT)]
+            platforms_arg = ["tiktok"]
+        else:
+            raise ValueError(f"Unknown platform: {platform}")
         
         if self.start_date_var.get():
             cmd.extend(["--start-date", self.start_date_var.get()])
@@ -160,34 +245,123 @@ class YouTubeSchedulerGUI:
             hours = self.hour_slots_var.get().split()
             cmd.extend(["--hour-slots"] + hours)
         
-        if self.category_id_var.get():
+        if platform == "youtube" and self.category_id_var.get():
             cmd.extend(["--category-id", self.category_id_var.get()])
         
-        # Add description if provided (get from entry widget directly)
+        # Add description if provided
         description = self.description_entry.get(1.0, tk.END).strip()
         if description:
-            # For Windows, we need to properly escape the description
-            # Use double quotes and escape internal quotes
             description_escaped = description.replace('"', '""')
             cmd.extend(["--description", description_escaped])
         
-        # Add tags if provided
-        tags = self.tags_var.get().strip()
-        if tags:
-            cmd.extend(["--tags", tags])
+        # Add tags if provided (YouTube only)
+        if platform == "youtube":
+            tags = self.tags_var.get().strip()
+            if tags:
+                cmd.extend(["--tags", tags])
         
         if self.dry_run_var.get():
             cmd.append("--dry-run")
         
-        # Save settings before running
-        self.save_settings()
+        # Add platforms argument for tracking
+        cmd.extend(["--platforms"] + platforms_arg)
         
-        # Start the process in a separate thread
-        self.process_thread = threading.Thread(target=self._run_process_thread, args=(cmd,), daemon=True)
-        self.process_thread.start()
-        
-        # Start checking for output
-        self.check_output()
+        return cmd
+    
+    def _run_both_platforms_thread(self, youtube_cmd: list, tiktok_cmd: list):
+        """Run both YouTube and TikTok uploads sequentially."""
+        try:
+            # For "both", we need to set platforms to ['youtube', 'tiktok'] for both commands
+            # This ensures files are only moved when BOTH uploads are complete
+            
+            # Modify YouTube command to include both platforms
+            if "--platforms" in youtube_cmd:
+                platforms_idx = youtube_cmd.index("--platforms")
+                youtube_cmd[platforms_idx + 1:platforms_idx + 2] = ["youtube", "tiktok"]
+            else:
+                youtube_cmd.extend(["--platforms", "youtube", "tiktok"])
+            
+            # Modify TikTok command to include both platforms
+            if "--platforms" in tiktok_cmd:
+                platforms_idx = tiktok_cmd.index("--platforms")
+                tiktok_cmd[platforms_idx + 1:platforms_idx + 2] = ["youtube", "tiktok"]
+            else:
+                tiktok_cmd.extend(["--platforms", "youtube", "tiktok"])
+            
+            # First, run YouTube
+            self.output_queue.put("=" * 80 + "\n")
+            self.output_queue.put("📺 UPLOADING TO YOUTUBE\n")
+            self.output_queue.put("=" * 80 + "\n\n")
+            
+            self.process = subprocess.Popen(
+                youtube_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                bufsize=1,
+                universal_newlines=True
+            )
+            
+            for line in self.process.stdout:
+                if not self.is_running:
+                    break
+                self.output_queue.put(line)
+            
+            youtube_return_code = self.process.wait()
+            
+            if not self.is_running:
+                return
+            
+            # Then, run TikTok
+            self.output_queue.put("\n" + "=" * 80 + "\n")
+            self.output_queue.put("🎵 UPLOADING TO TIKTOK\n")
+            self.output_queue.put("=" * 80 + "\n\n")
+            
+            self.process = subprocess.Popen(
+                tiktok_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                bufsize=1,
+                universal_newlines=True
+            )
+            
+            for line in self.process.stdout:
+                if not self.is_running:
+                    break
+                self.output_queue.put(line)
+            
+            tiktok_return_code = self.process.wait()
+            
+            # After both are done, check if any videos need to be moved
+            # (in case they were uploaded to both platforms)
+            try:
+                import upload_tracker
+                clips_folder = SCRIPT_DIR / "clips"
+                if clips_folder.exists():
+                    video_extensions = {".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv", ".webm"}
+                    videos = [
+                        f for f in clips_folder.iterdir()
+                        if f.is_file() and f.suffix.lower() in video_extensions
+                    ]
+                    for video in videos:
+                        if upload_tracker.should_move_to_sent(video.name, ["youtube", "tiktok"]):
+                            upload_tracker.move_to_sent(video)
+            except Exception as e:
+                # Non-critical, just log
+                self.output_queue.put(f"\n⚠️  Note: Could not check for files to move: {e}\n")
+            
+            # Return combined result
+            combined_code = 0 if (youtube_return_code == 0 and tiktok_return_code == 0) else 1
+            self.output_queue.put(('RETURN_CODE', combined_code))
+            
+        except Exception as e:
+            error_msg = f"Error running scripts: {e}"
+            self.output_queue.put(('ERROR', error_msg))
     
     def _run_process_thread(self, cmd):
         """Run the subprocess in a separate thread and queue output."""
@@ -265,28 +439,30 @@ class YouTubeSchedulerGUI:
         if not self.is_running or self.process is None:
             return
         
-        if messagebox.askyesno("Confirm", "Are you sure you want to stop the upload process?"):
-            self.is_running = False
-            try:
-                if self.process:
-                    self.process.terminate()
-                    # Wait a bit, then kill if still running
-                    try:
-                        self.process.wait(timeout=2)
-                    except subprocess.TimeoutExpired:
-                        self.process.kill()
-            except Exception as e:
-                self.output_text.insert(tk.END, f"\n\n⚠️ Error stopping process: {e}\n")
-            
-            self.output_text.insert(tk.END, "\n\n⚠️ Process stopped by user.\n")
-            self._reset_buttons()
+        self.is_running = False
+        try:
+            if self.process:
+                self.process.terminate()
+                # Wait a bit, then kill if still running
+                try:
+                    self.process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
+        except Exception as e:
+            self.output_text.insert(tk.END, f"\n\n⚠️ Error stopping process: {e}\n")
+        
+        self.output_text.insert(tk.END, "\n\n⚠️ Process stopped by user.\n")
+        self._reset_buttons()
     
     def _reset_buttons(self):
         """Reset button states after process completes."""
         self.is_running = False
-        self.run_button.config(state=tk.NORMAL)
+        self.youtube_button.config(state=tk.NORMAL)
+        self.tiktok_button.config(state=tk.NORMAL)
+        self.both_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
         self.process = None
+        self.current_platform = None
     
     def open_clips_folder(self):
         """Open the clips folder in file explorer."""
@@ -342,6 +518,46 @@ class YouTubeSchedulerGUI:
         except Exception as e:
             text_widget.insert(1.0, f"Error reading log: {e}")
     
+    def view_tracking(self):
+        """Open upload tracking status in a new window."""
+        import upload_tracker
+        
+        tracking_file = SCRIPT_DIR / "logs" / "upload_tracking.json"
+        if not tracking_file.exists():
+            messagebox.showinfo("Info", "No tracking data found yet.")
+            return
+        
+        tracking_window = tk.Toplevel(self.root)
+        tracking_window.title("Upload Tracking Status")
+        tracking_window.geometry("800x600")
+        
+        text_widget = scrolledtext.ScrolledText(tracking_window, wrap=tk.WORD)
+        text_widget.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        try:
+            # Get summary
+            summary = upload_tracker.get_upload_summary()
+            
+            text_widget.insert(1.0, "=" * 80 + "\n")
+            text_widget.insert(tk.END, "📊 UPLOAD TRACKING SUMMARY\n")
+            text_widget.insert(tk.END, "=" * 80 + "\n\n")
+            text_widget.insert(tk.END, f"Total Videos Tracked: {summary['total_videos']}\n")
+            text_widget.insert(tk.END, f"YouTube Uploaded: {summary['youtube_uploaded']}\n")
+            text_widget.insert(tk.END, f"TikTok Uploaded: {summary['tiktok_uploaded']}\n")
+            text_widget.insert(tk.END, f"Both Platforms: {summary['both_uploaded']}\n")
+            text_widget.insert(tk.END, f"YouTube Only: {summary['youtube_only']}\n")
+            text_widget.insert(tk.END, f"TikTok Only: {summary['tiktok_only']}\n")
+            text_widget.insert(tk.END, f"Not Uploaded: {summary['not_uploaded']}\n\n")
+            
+            # Get detailed tracking
+            tracking_data = upload_tracker.load_tracking()
+            text_widget.insert(tk.END, "=" * 80 + "\n")
+            text_widget.insert(tk.END, "📋 DETAILED TRACKING\n")
+            text_widget.insert(tk.END, "=" * 80 + "\n\n")
+            text_widget.insert(tk.END, json.dumps(tracking_data, indent=2, ensure_ascii=False))
+        except Exception as e:
+            text_widget.insert(1.0, f"Error reading tracking: {e}")
+    
     def load_settings(self):
         """Load saved GUI settings from file."""
         if GUI_SETTINGS_FILE.exists():
@@ -382,13 +598,10 @@ class YouTubeSchedulerGUI:
     def on_closing(self):
         """Handle window closing event."""
         if self.is_running:
-            if messagebox.askyesno("Confirm", "Upload process is running. Do you want to stop it and exit?"):
-                self.stop_process()
-                # Wait a moment for process to stop
-                if self.process_thread and self.process_thread.is_alive():
-                    self.process_thread.join(timeout=2)
-            else:
-                return  # Don't close if user cancels
+            self.stop_process()
+            # Wait a moment for process to stop
+            if self.process_thread and self.process_thread.is_alive():
+                self.process_thread.join(timeout=2)
         
         self.save_settings()
         self.root.destroy()
@@ -397,7 +610,7 @@ class YouTubeSchedulerGUI:
 def main():
     """Launch the GUI application."""
     root = tk.Tk()
-    app = YouTubeSchedulerGUI(root)
+    app = BulkSchedulerGUI(root)
     root.mainloop()
 
 

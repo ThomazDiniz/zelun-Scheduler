@@ -1,30 +1,80 @@
-# YouTube Bulk Video Scheduler
+# Zelun Scheduler
 
-A Python script to automatically upload and schedule multiple videos to your YouTube channel. The script processes videos from a local folder, uploads them to YouTube, schedules them for publication at specified times, and organizes uploaded videos into a "sent" folder.
+A Python script to automatically upload and schedule multiple videos to your YouTube channel and/or TikTok account. The script processes videos from a local folder, uploads them to your chosen platforms, schedules them for publication at specified times, and organizes uploaded videos using an intelligent tracking system.
 
 > 🇧🇷 **Português (Brasil)**: [README.pt-BR.md](README.pt-BR.md)
 
+## Table of Contents
+
+- [Features](#features)
+- [Limitations](#limitations)
+- [Requirements](#requirements)
+- [Installation](#installation)
+  - [YouTube Setup](#youtube-setup)
+  - [TikTok Setup](#tiktok-setup)
+- [Configuration](#configuration)
+  - [Configuration Options](#configuration-options)
+  - [Configuration Examples](#configuration-examples)
+- [Usage](#usage)
+  - [Basic Usage](#basic-usage-all-defaults)
+  - [Command-Line Arguments](#command-line-arguments)
+  - [Complete Examples](#complete-examples)
+  - [Common Use Cases](#common-use-cases)
+- [How It Works](#how-it-works)
+  - [Video Processing Flow](#video-processing-flow)
+  - [Authentication](#authentication)
+  - [Quota Management](#quota-management)
+  - [Tracking System](#tracking-system)
+- [Project Structure](#project-structure)
+- [API Documentation](#api-documentation)
+  - [Module Overview](#module-overview)
+  - [Constants](#constants)
+  - [Core Functions](#core-functions)
+  - [Data Structures](#data-structures)
+  - [Scheduling Logic](#scheduling-logic)
+  - [Error Handling](#error-handling)
+- [Troubleshooting](#troubleshooting)
+  - [YouTube Issues](#youtube-issues)
+  - [TikTok Issues](#tiktok-issues)
+  - [General Issues](#general-issues)
+- [Security Notes](#security-notes)
+- [License](#license)
+- [Support](#support)
+
 ## Features
 
+- ✅ **Multi-Platform Support**: Upload to YouTube, TikTok, or both platforms
 - ✅ **Bulk Upload**: Process multiple videos in one run
 - ✅ **Automatic Scheduling**: Schedule videos for consecutive days at configurable times
-- ✅ **Quota Management**: Automatically checks YouTube API quota reset times
+- ✅ **Intelligent Tracking**: Track upload status across platforms, move files only when all platforms complete
+- ✅ **Quota Management**: Automatically checks API quota limits for both platforms
 - ✅ **Error Handling**: Graceful error handling with clear messages
 - ✅ **Relative Paths**: Uses script-relative paths for portability
 - ✅ **Configurable**: Command-line arguments for all settings
+- ✅ **GUI Interface**: User-friendly graphical interface for easy operation
+- ✅ **Dry-Run Mode**: Preview uploads before actually executing
 - ✅ **English Codebase**: Fully documented in English
 
 ## Limitations
 
-- **Daily Upload Limit**: YouTube API has a quota limit of 6 videos per day
+### YouTube
+- **Daily Upload Limit**: YouTube API has a quota limit of ~6 videos per day (varies)
 - The script will automatically stop when the daily limit is reached
 - Quota resets at 05:00 local time (when using Brazil timezone)
+
+### TikTok
+- **Daily Upload Limit**: 15 posts per day per account
+- **Rate Limit**: 6 requests per minute per token
+- **Scheduling**: Maximum 10 days in advance
+- **File Size**: Maximum 287 MB per video
+- **Duration**: Up to 10 minutes (vertical 9:16 format recommended)
 
 ## Requirements
 
 - Python 3.7 or higher
-- Google Cloud Project with YouTube Data API v3 enabled
-- OAuth 2.0 credentials from Google Cloud Console
+- **For YouTube**: Google Cloud Project with YouTube Data API v3 enabled
+- **For TikTok**: TikTok Developer Account with app credentials
+- OAuth 2.0 credentials for your chosen platform(s)
 - Video files in a `clips` folder
 
 ## Installation
@@ -36,14 +86,7 @@ A Python script to automatically upload and schedule multiple videos to your You
    pip install -r requirements.txt
    ```
 
-3. **Set up Google Cloud credentials**:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project or select an existing one
-   - Enable the **YouTube Data API v3**
-   - Create **OAuth 2.0 credentials** (Desktop application type)
-   - Download the credentials JSON file
-   - Rename it to `client_secret.json` and place it in the script directory
-   - See `client_secret_sample.json` for the expected format
+3. **Set up platform credentials** (see sections below for each platform)
 
 4. **Configure default settings (optional)**:
    - Edit `config.json` with your preferred default settings
@@ -55,12 +98,65 @@ A Python script to automatically upload and schedule multiple videos to your You
    ```
    youtube-bulk-scheduler/
    ├── youtube_bulk_scheduler.py
-   ├── client_secret.json          # Your credentials (not in git)
+   ├── tiktok_bulk_scheduler.py
+   ├── gui_wrapper.py
+   ├── upload_tracker.py
+   ├── client_secret.json          # YouTube credentials (not in git)
+   ├── tiktok_client_secret.json  # TikTok credentials (not in git)
    ├── clips/                      # Place videos here
    │   ├── video1.mp4
    │   └── video2.mp4
    └── sent/                       # Uploaded videos moved here (auto-created)
    ```
+
+### YouTube Setup
+
+1. **Set up Google Cloud credentials**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select an existing one
+   - Enable the **YouTube Data API v3**
+   - Create **OAuth 2.0 credentials** (Desktop application type)
+   - Download the credentials JSON file
+   - Rename it to `client_secret.json` and place it in the script directory
+   - See `client_secret_sample.json` for the expected format
+
+2. **First authentication**:
+   - Run the script - it will open a browser for OAuth authentication
+   - Authorize the application
+   - Token will be saved in `token.json` for future use
+
+### TikTok Setup
+
+1. **Create an App in TikTok Developer Portal**:
+   - Visit: https://developers.tiktok.com/
+   - Log in with your TikTok account
+   - Create a new application
+   - Get your **Client Key** and **Client Secret**
+   - **⚠️ IMPORTANT**: In your app settings, configure the **Redirect URI** as `http://localhost:8080/callback/`
+     - This must match exactly what you use in the credentials file
+     - Go to your app → Settings → Platform information → Redirect URI
+     - Add: `http://localhost:8080/callback/`
+
+2. **Configure Credentials**:
+   - Create a `tiktok_client_secret.json` file in the project root:
+     ```json
+     {
+       "client_key": "your_client_key_here",
+       "client_secret": "your_client_secret_here",
+       "redirect_uri": "http://localhost:8080/callback/"
+     }
+     ```
+   - **⚠️ IMPORTANT**: The `redirect_uri` in this file MUST match exactly the one configured in TikTok Developer Portal
+   - See `tiktok_client_secret_sample.json` for the expected format
+
+3. **First authentication**:
+   - Run the TikTok scheduler - it will open your browser automatically
+   - Authorize the app in the browser
+   - Copy the authorization code from the redirect URL
+   - Paste it in the terminal
+   - Token will be saved in `tiktok_token.json` for future use
+
+**⚠️ IMPORTANT**: Both credential files (`client_secret.json` and `tiktok_client_secret.json`) are in `.gitignore` and will NOT be committed to git.
 
 ## Configuration
 
@@ -488,7 +584,8 @@ python youtube_bulk_scheduler.py --dry-run
 
 1. **Script Execution**: The script runs from its directory location
 2. **Video Discovery**: Scans the `clips/` folder for video files
-3. **Scheduling Logic**: 
+3. **Tracking Check**: Checks upload tracking to see which videos need uploading
+4. **Scheduling Logic**: 
    - Videos are scheduled starting from the `--start-date` (or today)
    - Videos are distributed across days based on `--hour-slots`
    - Example: With slots `[8, 18]` and 5 videos:
@@ -497,26 +594,71 @@ python youtube_bulk_scheduler.py --dry-run
      - Video 3: Day 2 at 8:00
      - Video 4: Day 2 at 18:00
      - Video 5: Day 3 at 8:00
-4. **Upload**: Each video is uploaded as private and scheduled for publication
-5. **File Organization**: Successfully uploaded videos are moved to `sent/` folder
+5. **Upload**: Each video is uploaded to the selected platform(s) and scheduled for publication
+6. **Tracking Update**: Upload status is saved to `logs/upload_tracking.json`
+7. **File Organization**: Videos are moved to `sent/` folder only when uploaded to ALL requested platforms
 
 ### Authentication
 
+#### YouTube
 1. First run: The script opens a browser for OAuth authentication
 2. After authentication: A `token.json` file is created (automatically ignored by git)
 3. Subsequent runs: Uses the saved token (refreshes automatically if expired)
 
+#### TikTok
+1. First run: The script provides a URL for OAuth authorization
+2. You authorize the app and copy the authorization code
+3. Paste the code in the terminal
+4. Token is saved in `tiktok_token.json` for future use
+
 ### Quota Management
 
-- YouTube API has a daily quota limit (typically 6 uploads per day)
+#### YouTube
+- YouTube API has a daily quota limit (typically ~6 uploads per day, varies)
 - The script checks if quota has reset (05:00 local time)
 - If quota is exceeded, the script stops and shows a message
 - Resume by running the script again after quota reset
 
+#### TikTok
+- TikTok API allows 15 posts per day per account
+- Rate limit: 6 requests per minute per token
+- The script respects these limits automatically
+
+### Tracking System
+
+The scheduler uses an intelligent tracking system to manage uploads across multiple platforms:
+
+- **Serialized State**: Upload status is saved in `logs/upload_tracking.json`
+- **Multi-Platform Support**: Tracks uploads separately for YouTube and TikTok
+- **Smart File Movement**: Videos remain in `clips/` until uploaded to ALL requested platforms
+- **State Persistence**: Tracking state is maintained between application sessions
+
+**Example Tracking Entry**:
+```json
+{
+  "video1.mp4": {
+    "youtube": {
+      "uploaded": true,
+      "uploaded_at": "2025-01-15T10:30:00",
+      "video_id": "abc123",
+      "scheduled_time": "2025-01-16T08:00:00"
+    },
+    "tiktok": {
+      "uploaded": false
+    }
+  }
+}
+```
+
+**Behavior**:
+- When uploading to YouTube only: File moved after YouTube upload completes
+- When uploading to TikTok only: File moved after TikTok upload completes
+- When uploading to both: File moved only after BOTH uploads complete
+
 ## Project Structure
 
 ```
-youtube-bulk-scheduler/
+zelun-scheduler/
 ├── youtube_bulk_scheduler.py   # Main script
 ├── requirements.txt             # Python dependencies
 ├── README.md                    # This file (English - includes all documentation)
@@ -848,28 +990,56 @@ The script includes comprehensive error handling:
 
 ## Troubleshooting
 
-### "client_secret.json not found"
+### YouTube Issues
+
+#### "client_secret.json not found"
 - Download OAuth credentials from Google Cloud Console
 - Save as `client_secret.json` in the script directory
 - See `client_secret_sample.json` for format reference
 
-### "Clips folder not found"
-- Create a `clips` folder in the same directory as the script
-- Place your video files in the `clips` folder
-
-### "Invalid timezone"
-- Use a valid timezone from the [tz database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
-- Common format: `Continent/City` (e.g., `America/Sao_Paulo`)
-
-### "Daily quota exceeded"
-- YouTube API allows ~6 uploads per day
+#### "Daily quota exceeded"
+- YouTube API allows ~6 uploads per day (varies)
 - Wait until 05:00 local time for quota reset
 - Run the script again after reset
 
-### Authentication errors
+#### YouTube Authentication errors
 - Delete `token.json` and re-authenticate
 - Check that `client_secret.json` is valid
 - Ensure YouTube Data API v3 is enabled in Google Cloud Console
+
+### TikTok Issues
+
+#### "tiktok_client_secret.json not found"
+- Create the file with your Client Key and Client Secret
+- See `tiktok_client_secret_sample.json` for format reference
+- Get credentials from https://developers.tiktok.com/
+
+#### TikTok Authentication errors
+- Verify that `tiktok_client_secret.json` exists and is correct
+- Verify that the authorization code was copied correctly
+- Try deleting `tiktok_token.json` and authenticating again
+
+#### TikTok Upload errors
+- Verify that the video is in the correct format (MP4 recommended)
+- Check file size (max 287 MB)
+- Verify that you haven't exceeded the daily limit (15 posts)
+- Check rate limits (6 requests per minute)
+
+### General Issues
+
+#### "Clips folder not found"
+- Create a `clips` folder in the same directory as the script
+- Place your video files in the `clips` folder
+
+#### "Invalid timezone"
+- Use a valid timezone from the [tz database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
+- Common format: `Continent/City` (e.g., `America/Sao_Paulo`)
+
+#### Video not being moved to sent folder
+- Check tracking in `logs/upload_tracking.json`
+- Use the "View Tracking" button in the GUI to see status
+- Files are only moved when uploaded to ALL requested platforms
+- If uploading to "both", ensure both YouTube and TikTok uploads complete successfully
 
 ## Security Notes
 
