@@ -705,20 +705,48 @@ def upload_and_schedule(
 
 
 def backup_files() -> None:
-    """Create backup of important files (config, history)."""
+    """Create backup of important files (config, history) by appending to single files."""
     try:
         BACKUP_DIR.mkdir(exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().isoformat()
         
-        # Backup config
+        # Backup config - append to single file
         if CONFIG_FILE.exists():
-            backup_path = BACKUP_DIR / f"config_{timestamp}.json"
-            shutil.copy2(CONFIG_FILE, backup_path)
+            backup_path = BACKUP_DIR / "config_backup.json"
+            try:
+                with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+                
+                # Create backup entry with timestamp
+                backup_entry = {
+                    'timestamp': timestamp,
+                    'data': config_data
+                }
+                
+                # Append as JSON line
+                with open(backup_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps(backup_entry, ensure_ascii=False) + '\n')
+            except Exception as e:
+                log_error(f"Failed to backup config: {e}", "WARNING", e)
         
-        # Backup history
+        # Backup history - append to single file
         if HISTORY_FILE.exists():
-            backup_path = BACKUP_DIR / f"history_{timestamp}.json"
-            shutil.copy2(HISTORY_FILE, backup_path)
+            backup_path = BACKUP_DIR / "history_backup.json"
+            try:
+                with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
+                    history_data = json.load(f)
+                
+                # Create backup entry with timestamp
+                backup_entry = {
+                    'timestamp': timestamp,
+                    'data': history_data
+                }
+                
+                # Append as JSON line
+                with open(backup_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps(backup_entry, ensure_ascii=False) + '\n')
+            except Exception as e:
+                log_error(f"Failed to backup history: {e}", "WARNING", e)
     except Exception as e:
         log_error(f"Failed to create backup: {e}", "WARNING", e)
 

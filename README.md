@@ -728,11 +728,15 @@ Adds an upload entry to history.
 - `error_message: str | None` - Error message if failed
 
 #### `backup_files() -> None`
-Creates backup of important files (config, history).
+Creates backup of important files (config, history) by appending to single files.
 
 **Backup Location**: `backups/` directory
 
-**Backup Format**: `{filename}_{timestamp}.{ext}`
+**Backup Format**: 
+- `config_backup.json` - Single file with JSON Lines format (one backup entry per line)
+- `history_backup.json` - Single file with JSON Lines format (one backup entry per line)
+
+Each line contains a JSON object with `timestamp` and `data` fields.
 
 #### `main() -> None`
 Main entry point. Prevents concurrent executions and calls `_main_impl()`.
