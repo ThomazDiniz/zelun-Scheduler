@@ -12,9 +12,9 @@ relative_links:
   enabled: true
   collections: true
 
-# Include all files
-include:
-  - verify_tiktok
+# Exclude verify_tiktok from Jekyll processing
+exclude:
+  - docs/verify_tiktok
 
 # Site settings
 url: https://thomazdiniz.github.io
