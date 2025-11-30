@@ -2,7 +2,7 @@
 
 A Python script to automatically upload and schedule multiple videos to your YouTube channel and/or TikTok account. The script processes videos from a local folder, uploads them to your chosen platforms, schedules them for publication at specified times, and organizes uploaded videos using an intelligent tracking system.
 
-> 🇧🇷 **Português (Brasil)**: [README.pt-BR.md](README.pt-BR.md)
+> 🌐 **Website**: [thomazdiniz.github.io/zelun-Scheduler](https://thomazdiniz.github.io/zelun-Scheduler/) | 🇧🇷 **Português (Brasil)**: [README.pt-BR.md](README.pt-BR.md)
 
 ## Table of Contents
 

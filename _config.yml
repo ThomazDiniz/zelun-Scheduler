@@ -12,3 +12,8 @@ relative_links:
   enabled: true
   collections: true
 
+# Site settings
+url: https://thomazdiniz.github.io
+baseurl: /zelun-Scheduler
+
+
