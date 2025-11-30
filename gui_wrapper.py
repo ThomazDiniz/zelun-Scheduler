@@ -10,8 +10,10 @@ import subprocess
 import sys
 import json
 import tkinter as tk
+import threading
+import queue
 from pathlib import Path
-from tkinter import scrolledtext, ttk, messagebox, filedialog
+from tkinter import scrolledtext, ttk, messagebox
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 MAIN_SCRIPT = SCRIPT_DIR / "youtube_bulk_scheduler.py"
@@ -32,6 +34,12 @@ class YouTubeSchedulerGUI:
         self.category_id_var = tk.StringVar(value="20")
         self.description_var = tk.StringVar()
         self.tags_var = tk.StringVar()
+        
+        # Threading and process control
+        self.process = None
+        self.process_thread = None
+        self.output_queue = queue.Queue()
+        self.is_running = False
         
         # Load saved settings
         self.load_settings()
@@ -102,7 +110,12 @@ class YouTubeSchedulerGUI:
         button_frame = ttk.Frame(main_frame)
         button_frame.grid(row=2, column=0, columnspan=2, pady=10)
         
-        ttk.Button(button_frame, text="Run Scheduler", command=self.run_scheduler).pack(side=tk.LEFT, padx=5)
+        self.run_button = ttk.Button(button_frame, text="Run Scheduler", command=self.run_scheduler)
+        self.run_button.pack(side=tk.LEFT, padx=5)
+        
+        self.stop_button = ttk.Button(button_frame, text="Stop", command=self.stop_process, state=tk.DISABLED)
+        self.stop_button.pack(side=tk.LEFT, padx=5)
+        
         ttk.Button(button_frame, text="Open Clips Folder", command=self.open_clips_folder).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="View History", command=self.view_history).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="View Logs", command=self.view_logs).pack(side=tk.LEFT, padx=5)
@@ -121,10 +134,18 @@ class YouTubeSchedulerGUI:
         main_frame.rowconfigure(3, weight=1)
         
     def run_scheduler(self):
-        """Run the scheduler script with current settings."""
+        """Run the scheduler script with current settings (asynchronously)."""
+        if self.is_running:
+            messagebox.showwarning("Warning", "Process is already running!")
+            return
+        
         self.output_text.delete(1.0, tk.END)
         self.output_text.insert(tk.END, "Starting YouTube Scheduler...\n\n")
-        self.root.update()
+        
+        # Disable run button and enable stop button
+        self.run_button.config(state=tk.DISABLED)
+        self.stop_button.config(state=tk.NORMAL)
+        self.is_running = True
         
         # Build command
         cmd = [sys.executable, str(MAIN_SCRIPT)]
@@ -161,10 +182,19 @@ class YouTubeSchedulerGUI:
         # Save settings before running
         self.save_settings()
         
+        # Start the process in a separate thread
+        self.process_thread = threading.Thread(target=self._run_process_thread, args=(cmd,), daemon=True)
+        self.process_thread.start()
+        
+        # Start checking for output
+        self.check_output()
+    
+    def _run_process_thread(self, cmd):
+        """Run the subprocess in a separate thread and queue output."""
         try:
             # Run script and capture output
             # Use UTF-8 encoding explicitly to handle emojis and special characters
-            process = subprocess.Popen(
+            self.process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -175,25 +205,88 @@ class YouTubeSchedulerGUI:
                 universal_newlines=True
             )
             
-            # Stream output to text widget
-            for line in process.stdout:
-                self.output_text.insert(tk.END, line)
-                self.output_text.see(tk.END)
-                self.root.update()
+            # Stream output to queue
+            for line in self.process.stdout:
+                if not self.is_running:  # Check if process was stopped
+                    break
+                self.output_queue.put(line)
             
-            process.wait()
+            # Wait for process to complete
+            return_code = self.process.wait()
+            self.output_queue.put(('RETURN_CODE', return_code))
             
-            if process.returncode == 0:
-                self.output_text.insert(tk.END, "\n\n✅ Process completed successfully!\n")
-                messagebox.showinfo("Success", "Upload process completed successfully!")
-            else:
-                self.output_text.insert(tk.END, f"\n\n❌ Process exited with code {process.returncode}\n")
-                messagebox.showerror("Error", f"Process exited with code {process.returncode}")
-                
         except Exception as e:
             error_msg = f"Error running script: {e}"
+            self.output_queue.put(('ERROR', error_msg))
+    
+    def check_output(self):
+        """Check for output from the process thread and update GUI."""
+        try:
+            while True:
+                try:
+                    item = self.output_queue.get_nowait()
+                    
+                    if isinstance(item, tuple):
+                        if item[0] == 'RETURN_CODE':
+                            return_code = item[1]
+                            if return_code == 0:
+                                self.output_text.insert(tk.END, "\n\n✅ Process completed successfully!\n")
+                                messagebox.showinfo("Success", "Upload process completed successfully!")
+                            else:
+                                self.output_text.insert(tk.END, f"\n\n❌ Process exited with code {return_code}\n")
+                                messagebox.showerror("Error", f"Process exited with code {return_code}")
+                            self._reset_buttons()
+                            return
+                        elif item[0] == 'ERROR':
+                            error_msg = item[1]
+                            self.output_text.insert(tk.END, f"\n\n❌ {error_msg}\n")
+                            messagebox.showerror("Error", error_msg)
+                            self._reset_buttons()
+                            return
+                    else:
+                        # Regular output line
+                        self.output_text.insert(tk.END, item)
+                        self.output_text.see(tk.END)
+                        
+                except queue.Empty:
+                    break
+        except Exception as e:
+            error_msg = f"Error processing output: {e}"
             self.output_text.insert(tk.END, f"\n\n❌ {error_msg}\n")
-            messagebox.showerror("Error", error_msg)
+            self._reset_buttons()
+            return
+        
+        # Schedule next check
+        if self.is_running:
+            self.root.after(100, self.check_output)  # Check every 100ms
+    
+    def stop_process(self):
+        """Stop the running process."""
+        if not self.is_running or self.process is None:
+            return
+        
+        if messagebox.askyesno("Confirm", "Are you sure you want to stop the upload process?"):
+            self.is_running = False
+            try:
+                if self.process:
+                    self.process.terminate()
+                    # Wait a bit, then kill if still running
+                    try:
+                        self.process.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        self.process.kill()
+            except Exception as e:
+                self.output_text.insert(tk.END, f"\n\n⚠️ Error stopping process: {e}\n")
+            
+            self.output_text.insert(tk.END, "\n\n⚠️ Process stopped by user.\n")
+            self._reset_buttons()
+    
+    def _reset_buttons(self):
+        """Reset button states after process completes."""
+        self.is_running = False
+        self.run_button.config(state=tk.NORMAL)
+        self.stop_button.config(state=tk.DISABLED)
+        self.process = None
     
     def open_clips_folder(self):
         """Open the clips folder in file explorer."""
@@ -288,6 +381,15 @@ class YouTubeSchedulerGUI:
     
     def on_closing(self):
         """Handle window closing event."""
+        if self.is_running:
+            if messagebox.askyesno("Confirm", "Upload process is running. Do you want to stop it and exit?"):
+                self.stop_process()
+                # Wait a moment for process to stop
+                if self.process_thread and self.process_thread.is_alive():
+                    self.process_thread.join(timeout=2)
+            else:
+                return  # Don't close if user cancels
+        
         self.save_settings()
         self.root.destroy()
 
